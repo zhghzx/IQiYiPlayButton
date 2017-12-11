@@ -20,7 +20,7 @@ static CGFloat positionAnimationDuration = 0.3f;
 //右侧直线动画名称
 #define RightLineAnimationName @"RightLineAnimationName"
 
-@interface IQiYiPlayButton ()<CAAnimationDelegate>
+@interface IQiYiPlayButton ()
 
 {
     BOOL _isAnimating;//是否正在执行动画
@@ -36,10 +36,8 @@ static CGFloat positionAnimationDuration = 0.3f;
 
 - (instancetype)initWithFrame:(CGRect)frame state:(IQiYiPlayButtonState)state {
     if (self = [super initWithFrame:frame]) {
+        _buttonState = state;
         [self setupUI];
-        if (state == IQiYiPlayButtonStatePlay) {
-            self.buttonState = state;
-        }
     }
     return self;
 }
@@ -47,7 +45,6 @@ static CGFloat positionAnimationDuration = 0.3f;
 #pragma mark -
 #pragma mark -添加layer
 - (void)setupUI {
-    _buttonState = IQiYiPlayButtonStatePause;
     [self setLeftLineLayer];
     [self setRightLineLayer];
     [self setTriangleLayer];
@@ -71,8 +68,12 @@ static CGFloat positionAnimationDuration = 0.3f;
     UIBezierPath *path = [UIBezierPath bezierPath];
     [path moveToPoint:CGPointMake(0.2*a, 0)];
     [path addLineToPoint:CGPointMake(0.2*a, a)];
-    
     _leftLineLayer = [CAShapeLayer layer];
+    if (_buttonState) {
+        _leftLineLayer.strokeEnd  = 1;
+    } else {
+        _leftLineLayer.strokeEnd = 0;
+    }
     [self setupLayer:_leftLineLayer with:path.CGPath and:kCALineCapRound];
 }
 
@@ -82,8 +83,12 @@ static CGFloat positionAnimationDuration = 0.3f;
     UIBezierPath *path = [UIBezierPath bezierPath];
     [path moveToPoint:CGPointMake(0.8*a, a)];
     [path addLineToPoint:CGPointMake(0.8*a, 0)];
-    
     _rightLineLayer = [CAShapeLayer layer];
+    if (_buttonState) {
+        _rightLineLayer.strokeEnd = 1;
+    } else {
+        _rightLineLayer.strokeEnd = 0;
+    }
     [self setupLayer:_rightLineLayer with:path.CGPath and:kCALineCapRound];
 }
 
@@ -96,10 +101,13 @@ static CGFloat positionAnimationDuration = 0.3f;
     [path addLineToPoint:CGPointMake(a, 0.5*a)];
     [path addLineToPoint:CGPointMake(0.2*a, a)];
     [path addLineToPoint:CGPointMake(0.2*a, 0.2*a)];
-    
     _triangleLayer = [CAShapeLayer layer];
-    _triangleLayer.strokeEnd = 0;
-    [self setupLayer:_triangleLayer with:path.CGPath and:kCALineCapButt];
+    if (_buttonState) {
+        _triangleLayer.strokeEnd = 0;
+    } else {
+        _triangleLayer.strokeEnd = 1;
+    }
+    [self setupLayer:_triangleLayer with:path.CGPath and:kCALineCapRound];
 }
 
 //设置弧线
@@ -108,7 +116,6 @@ static CGFloat positionAnimationDuration = 0.3f;
     UIBezierPath *path = [UIBezierPath bezierPath];
     [path moveToPoint:CGPointMake(0.8*a, 0.8*a)];
     [path addArcWithCenter:CGPointMake(0.5*a, 0.8*a) radius:0.3*a startAngle:0 endAngle:M_PI clockwise:true];
-    
     _arcLayer = [CAShapeLayer layer];
     _arcLayer.strokeEnd = 0;
     [self setupLayer:_arcLayer with:path.CGPath and:kCALineCapButt];
@@ -116,7 +123,7 @@ static CGFloat positionAnimationDuration = 0.3f;
 
 #pragma mark -
 #pragma mark -竖线动画
-//暂停->播放
+//播放->暂停
 - (void)positiveLineAnimation {
     CGFloat a = self.bounds.size.width;
     //左侧竖线缩放
@@ -270,7 +277,7 @@ static CGFloat positionAnimationDuration = 0.3f;
     NSString *name = [anim valueForKey:@"animationName"];
     BOOL isTriangle = [name isEqualToString:TriangleAnimationName];
     BOOL isRightLine = [name isEqualToString:RightLineAnimationName];
-    if (isRightLine && _buttonState == IQiYiPlayButtonStatePlay) {
+    if (isRightLine && _buttonState == IQiYiPlayButtonStatePause) {
         _rightLineLayer.lineCap = kCALineCapButt;
     } else if (isTriangle) {
         _triangleLayer.lineCap = kCALineCapButt;
@@ -281,23 +288,22 @@ static CGFloat positionAnimationDuration = 0.3f;
     if (_isAnimating) {
         return;
     }
+    NSLog(@"%zi", buttonState);
     _buttonState = buttonState;
+    _isAnimating = YES;
     if (buttonState == IQiYiPlayButtonStatePause) {
         //播放->暂停
-        _isAnimating = YES;
-        [self inverseTransformAnimation];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(transformanimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self inverseLineAnimation];
-        });
-        
-    }   else if (buttonState == IQiYiPlayButtonStatePlay) {
-        //暂停->播放
-        _isAnimating = YES;
         //竖线正向动画
         [self positiveLineAnimation];
         //三角形弧线
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(positionAnimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self positiveTransformAnimation];
+        });
+    }   else if (buttonState == IQiYiPlayButtonStatePlay) {
+        //暂停->播放
+        [self inverseTransformAnimation];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(transformanimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self inverseLineAnimation];
         });
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(positionAnimationDuration + transformanimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
