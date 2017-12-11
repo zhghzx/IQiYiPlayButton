@@ -306,7 +306,7 @@ static CGFloat positionAnimationDuration = 0.3f;
             [self inverseLineAnimation];
         });
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(positionAnimationDuration + transformanimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((positionAnimationDuration + transformanimationDuration) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         _isAnimating = NO;
     });
 }
